@@ -1,0 +1,4 @@
+model.pt
+newmodel.pt
+yolov8l_100e.pt
+yolov8m_200e.pt
