@@ -2,69 +2,230 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>📸 Real-Time Face Attendance</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <style>
-        .video-box { border: 4px solid #4CAF50; border-radius: 15px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Face Attendance & Anti-Spoofing Portal</title>
+
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom Glassmorphism CSS -->
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="bg-light text-center">
-    <div class="container py-4">
-        <h2 class="mb-4">📸 <b>Real-Time Face Attendance</b></h2>
-        <img src="{{ url_for('video_feed') }}" class="video-box" width="640" height="480">
+<body>
 
-        <div class="my-4">
-            <label for="date-select" class="form-label"><b>📅 Select Date:</b></label>
-            <select id="date-select" class="form-select w-auto d-inline-block"></select>
-            <a id="download-link" class="btn btn-primary ms-2" href="#" target="_blank">⬇️ Download</a>
+    <!-- Header Navigation Bar -->
+    <header class="navbar">
+        <div class="brand">
+            <i class="fa-solid fa-user-shield"></i>
+            <span>AI Face Sentinel</span>
         </div>
+        <nav class="nav-tabs">
+            <button class="nav-btn active" onclick="switchTab('dashboard')">
+                <i class="fa-solid fa-chart-line"></i> Dashboard
+            </button>
+            <button class="nav-btn" onclick="switchTab('attendance')">
+                <i class="fa-solid fa-calendar-check"></i> Attendance Logs
+            </button>
+            <button class="nav-btn" onclick="switchTab('registry')">
+                <i class="fa-solid fa-id-card"></i> Face Registry
+            </button>
+        </nav>
+    </header>
 
-        <table class="table table-bordered bg-white">
-            <thead>
-                <tr><th>Name</th><th>Time</th></tr>
-            </thead>
-            <tbody id="attendance-body">
-                <tr><td colspan="2">Loading...</td></tr>
-            </tbody>
-        </table>
+    <main class="container">
+        <!-- Live Quick Stats Row -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h4>Registered Users</h4>
+                    <div class="stat-value" id="stat-registered">0</div>
+                </div>
+                <div class="stat-icon indigo">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h4>Present Today</h4>
+                    <div class="stat-value" id="stat-today">0</div>
+                </div>
+                <div class="stat-icon green">
+                    <i class="fa-solid fa-user-check"></i>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h4>Spoofs Blocked</h4>
+                    <div class="stat-value" id="stat-fake">0</div>
+                </div>
+                <div class="stat-icon red">
+                    <i class="fa-solid fa-shield-virus"></i>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h4>Accelerator Device</h4>
+                    <div class="stat-value" id="stat-device" style="font-size: 1.25rem;">CPU</div>
+                </div>
+                <div class="stat-icon amber">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 1: Live Dashboard -->
+        <section id="tab-dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <!-- Video Stream Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fa-solid fa-camera"></i> Live Recognition & Anti-Spoofing Stream
+                        </h3>
+                        <span id="system-status-pill" style="font-size: 0.8rem; color: var(--success);">● Camera Active</span>
+                    </div>
+                    <div class="video-wrapper">
+                        <div class="live-badge">
+                            <div class="live-dot"></div> LIVE
+                        </div>
+                        <img id="webcam-feed" src="/video_feed" class="video-stream" alt="Webcam Feed">
+                    </div>
+                </div>
+
+                <!-- Real-Time Activity Log Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Live Detection Stream
+                        </h3>
+                    </div>
+                    <div class="log-list" id="activity-log-container">
+                        <div class="log-item" style="color: var(--text-muted);">Listening for detection events...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: Attendance History -->
+        <section id="tab-attendance" class="tab-content">
+            <div class="card">
+                <div class="controls-row">
+                    <h3 class="card-title">
+                        <i class="fa-solid fa-table-list"></i> Attendance Records
+                    </h3>
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <div class="input-group">
+                            <i class="fa-solid fa-calendar"></i>
+                            <select id="date-select" onchange="onDateChanged()"></select>
+                        </div>
+                        <div class="input-group">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-input" placeholder="Search by name..." oninput="filterAttendanceTable()">
+                        </div>
+                        <a id="download-btn" href="#" class="btn btn-primary">
+                            <i class="fa-solid fa-download"></i> Download CSV
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Person Name</th>
+                                <th>Timestamp</th>
+                                <th>Verification Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-table-body">
+                            <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading attendance logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: Face Registry Management -->
+        <section id="tab-registry" class="tab-content">
+            <div class="card">
+                <div class="controls-row">
+                    <h3 class="card-title">
+                        <i class="fa-solid fa-user-gear"></i> Registered People
+                    </h3>
+                    <button class="btn btn-primary" onclick="openRegisterModal()">
+                        <i class="fa-solid fa-user-plus"></i> Register New Face
+                    </button>
+                </div>
+
+                <div class="face-grid" id="face-registry-grid">
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px 0;">
+                        Loading face registry...
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Register New Face -->
+    <div class="modal-overlay" id="register-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 style="font-weight: 600;"><i class="fa-solid fa-user-plus" style="color: var(--accent-primary);"></i> Register New Face</h3>
+                <button class="close-btn" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 6px;">Person Name</label>
+                    <input type="text" id="reg-name" class="form-control" placeholder="e.g. John Doe">
+                </div>
+
+                <!-- Registration Source Tabs -->
+                <div style="display: flex; gap: 10px; margin-top: 4px;">
+                    <button id="src-btn-file" class="btn btn-primary" style="flex:1; font-size: 0.82rem;" onclick="setRegSource('file')">
+                        <i class="fa-solid fa-upload"></i> Upload Image
+                    </button>
+                    <button id="src-btn-cam" class="btn" style="flex:1; font-size: 0.82rem; background: rgba(255,255,255,0.05); color: var(--text-secondary);" onclick="setRegSource('cam')">
+                        <i class="fa-solid fa-camera"></i> Take Camera Snapshot
+                    </button>
+                </div>
+
+                <!-- File Upload Option -->
+                <div id="reg-file-container">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 6px;">Select Photo File</label>
+                    <input type="file" id="reg-file" class="form-control" accept="image/*">
+                </div>
+
+                <!-- Camera Snapshot Option -->
+                <div id="reg-cam-container" style="display: none; text-align: center;">
+                    <video id="reg-webcam-preview" autoplay playsinline style="width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: none;"></video>
+                    <canvas id="reg-canvas" style="display: none;"></canvas>
+                    <img id="reg-snapshot-preview" style="width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: none; margin-bottom: 8px;">
+                    
+                    <button id="btn-snap" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="takeSnapshot()">
+                        <i class="fa-solid fa-camera-retro"></i> Capture Snapshot
+                    </button>
+                </div>
+
+                <div id="reg-message" style="font-size: 0.85rem; margin-top: 4px; display: none;"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px;">
+                    <button class="btn" style="background: transparent; color: var(--text-secondary);" onclick="closeRegisterModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitFaceRegistration()">
+                        <i class="fa-solid fa-check"></i> Save & Register
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script>
-        async function loadDates() {
-            const res = await fetch("/dates");
-            const dates = await res.json();
-            const select = document.getElementById("date-select");
-            select.innerHTML = "";
-            dates.reverse().forEach(date => {
-                const opt = document.createElement("option");
-                opt.value = date;
-                opt.textContent = date;
-                select.appendChild(opt);
-            });
-            if (dates.length) {
-                select.value = dates[0];
-                loadAttendance(dates[0]);
-            }
-        }
-
-        async function loadAttendance(date) {
-            const res = await fetch(`/attendance/${date}`);
-            const data = await res.json();
-            const body = document.getElementById("attendance-body");
-            const downloadLink = document.getElementById("download-link");
-
-            body.innerHTML = data.length === 0
-                ? "<tr><td colspan='2'>No attendance marked.</td></tr>"
-                : data.map(d => `<tr><td>${d.name}</td><td>${d.time}</td></tr>`).join("");
-
-            downloadLink.href = `/download/${date}`;
-        }
-
-        document.getElementById("date-select").addEventListener("change", e => {
-            loadAttendance(e.target.value);
-        });
-
-        loadDates();
-    </script>
+    <!-- Application Script -->
+    <script src="/static/script.js"></script>
 </body>
 </html>
